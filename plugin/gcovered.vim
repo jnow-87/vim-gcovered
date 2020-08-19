@@ -147,6 +147,16 @@ function s:gcovered(...)
 	endif
 endfunction
 
+let s:cmd_dict = {
+	\ "gcovered":{
+		\ "load":{"__nested__":"util#complete#file"},
+		\ "unload":{},
+	\ }
+\ }
+
+
+call util#complete#init(s:cmd_dict)
+
 
 """"
 "" signs
@@ -170,5 +180,5 @@ sign define CovBranch11			text=✔✔ texthl=CovBranchCovered
 "" commands
 """"
 "{{{
-command -nargs=+ Gcovered			call s:gcovered(<f-args>)
+command -nargs=+ -complete=custom,util#complete#lookup Gcovered call s:gcovered(<f-args>)
 "}}}
