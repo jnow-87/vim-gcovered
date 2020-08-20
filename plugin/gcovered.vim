@@ -83,6 +83,21 @@ function s:parse_line(line)
 	return ["", 0, 0]
 endfunction
 
+function s:get_branch_sign(state)
+	if len(a:state) > 2
+		if stridx(a:state, "0") == -1
+			return "CovBranchx1"
+		elseif stridx(a:state, "1") == -1
+			return "CovBranchx0"
+		else
+			return "CovBranchxx"
+		endif
+
+	else
+		return "CovBranch" . a:state
+	endif
+endfunction
+
 function s:load(file)
 	let l:cov = readfile(a:file)
 	let l:last_line = 0
@@ -98,7 +113,8 @@ function s:load(file)
 			let b:cov_srcfile = l:data
 
 		elseif l:type == "line"
-			let last_line = l:data
+			let l:last_line = l:data
+			let l:branch_cov = ""
 
 			if l:covered == 1
 				call s:sign_place("CovLineCovered", b:cov_srcfile, l:data)
@@ -107,17 +123,10 @@ function s:load(file)
 			endif
 
 		elseif l:type == "branch"
-			let branch .= l:covered
+			let l:branch .= l:covered
 
-			if len(l:branch) == 2
-				if l:last_line != 0
-					call s:sign_place("CovBranch" . l:branch, b:cov_srcfile, l:last_line)
-				else
-					echoerr "no line associated with branch"
-				endif
-
-				let l:branch = ""
-				let l:last_line = 0
+			if len(l:branch) >= 2
+				call s:sign_place(s:get_branch_sign(l:branch), l:src, l:last_line)
 			endif
 		endif
 
@@ -175,6 +184,9 @@ sign define CovBranch11			text=✔✔ texthl=CovBranchCovered
 """"
 "{{{
 "}}}
+sign define CovBranchx0			text=#✘ texthl=CovBranchUncovered
+sign define CovBranchx1			text=#✔ texthl=CovBranchCovered
+sign define CovBranchxx			text=#~ texthl=CovBranchPartial
 
 """"
 "" commands
