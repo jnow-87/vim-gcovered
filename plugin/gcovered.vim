@@ -40,6 +40,22 @@ function s:strip(str)
 	return substitute(a:str, '^\s\+\|\s\+$', '', 'g')
 endfunction
 
+function s:find_gcov_file(src_file)
+	let l:gcov = ""
+	let l:ext = split(a:src_file, "\\.")[-1]
+
+	for l:sub in ["gcov", "host.gcov", l:ext . ".gcov"]
+		let l:pat = substitute(a:src_file, l:ext . "$", l:sub, "")
+		let l:gcov = findfile(l:pat, "**")
+
+		if l:gcov != ""
+			break
+		endif
+	endfor
+
+	return l:gcov
+endfunction
+
 function s:sign_place(sign_name, file, line)
 	exec "sign place 1 line=" . a:line . " name=" . a:sign_name. " file=" . a:file
 endfunction
@@ -132,13 +148,20 @@ function s:load(file)
 
 		let l:i = l:i + 1
 	endwhile
+
+	let b:cov_file_loaded = 1
 endfunction
 
-function s:unload(file)
-	exec "sign unplace * file=" . a:file
+function s:unload(bufname)
+	if b:cov_file_loaded == 0
+		return
+	endif
+
+	exec "sign unplace * file=" . a:bufname
 	highlight SignColumn ctermbg=0
-endfunction
 
+	let b:cov_file_loaded = 0
+endfunction
 
 """"
 "" global functions
@@ -147,12 +170,37 @@ endfunction
 "
 " \param	...		optional make target
 function s:gcovered(...)
-	if a:1 == "load"
-		call s:load(a:2)
-	elseif a:1 == "unload"
+	if !exists("b:cov_file_loaded")
+		let b:cov_file_loaded = 0
+	endif
+
+	if a:1 == "unload" ||( a:1 == "toggle" && b:cov_file_loaded == 1)
 		call s:unload(bufname("%"))
-	elseif a:1 == "update"
-		" TODO
+
+	elseif a:1 == "load" || a:1 == "toggle" || a:1 == "update"
+		if a:1 == "update"
+			call s:unload(bufname("%"))
+		endif
+
+		if b:cov_file_loaded == 1
+			return
+		endif
+
+		if a:0 == 1
+			let l:file = s:find_gcov_file(bufname("%"))
+
+			if l:file != ""
+				echom "loading gcov file: " . l:file
+				call s:load(l:file)
+			else
+				echoerr "no .gcov file found for " . bufname("%")
+			endif
+		else
+			call s:load(a:2)
+		endif
+
+	else
+		echoerr "unknown action " . a:1
 	endif
 endfunction
 
@@ -160,6 +208,8 @@ let s:cmd_dict = {
 	\ "gcovered":{
 		\ "load":{"__nested__":"util#complete#file"},
 		\ "unload":{},
+		\ "toggle":{},
+		\ "update":{},
 	\ }
 \ }
 
