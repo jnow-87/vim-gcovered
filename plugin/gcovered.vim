@@ -31,6 +31,8 @@ highlight default CovBranchPartial		ctermfg=235 ctermbg=208
 "" local variables
 """"
 "{{{
+let g:gcovered_toggle = get(g:, "gcovered_toggle", "gct")
+let g:gcovered_update = get(g:, "gcovered_update", "gcu")
 "}}}
 
 """"
@@ -244,3 +246,6 @@ sign define CovBranchxx			text=#~ texthl=CovBranchPartial
 "{{{
 command -nargs=+ -complete=custom,util#complete#lookup Gcovered call s:gcovered(<f-args>)
 "}}}
+
+call util#map#n(g:gcovered_toggle, ":call " . s:sid . "gcovered('toggle')<cr>", "")
+call util#map#n(g:gcovered_update, ":call " . s:sid . "gcovered('update')<cr>", "")
